@@ -9,3 +9,35 @@
 - 제품 아이디 유효성 검증
   -  어떤 항목이 다른 테이블에 있는 합당한 값에 대해 유효한지를 확인하기 위해 FK를 사용할 수 있다.
   -  a테이블.id가 b테이블.id를 참조하도록 선언해, 참조 정합성을 데이터베이스가 강제하도록 할 수 있다. 
+
+## 2. 순진한 트리 
+### 항상 부모에 의존하기 - 인접목록
+- 답글 - parent_id 컬럼 추가하기
+- 이 칼럼은 같은 테이블 안의 다른 글을 참조하며, 이 관계를 강제하기 위해 FK 제약조건을 걸 수 있다.
+- 답글 같은 경우 긴 타래를 하나의 sql 쿼리로 불러오기가 어렵다는 단점이 있다. 
+
+<img width="639" alt="image" src="https://github.com/hyunjungkimm/sql-antipattern/assets/97015607/f48c9045-f84a-437f-891e-0289bf864e51">
+
+- 모든 자식 조회하기를 제대로 못한다면 안티패턴이 될 수 있다.
+- 인접 목록의 강점은 주어진 노드의 부모나 자식을 바로 얻을 수 있다는 것이다. 또한 새로운 노드를 추가하기도 쉽다.
+
+### 해법 
+#### 대안 트리 모델 사용 
+- 경로 열거
+  - 인접 목록의 약점 중 하나는 트리에서 주어진 노드의 조상들을 얻는 데 비용이 많이 든다는 것이다.
+  - 경로 열거 방법에서는 일련의 조상을 각 노드의 속성으로 저장해 이를 해결함
+  - <img width="638" alt="image" src="https://github.com/hyunjungkimm/sql-antipattern/assets/97015607/da5897c1-e784-40c4-aaa1-ce4e925daa33">
+  - 무단횡단의 단점과 동일함 (제한, 비용)
+- 중첩 집합
+    - <img width="622" alt="image" src="https://github.com/hyunjungkimm/sql-antipattern/assets/97015607/12671ae8-e181-40d1-bc27-6c7dcda914f6">
+    - 각 노드가 자신의 부모를 저장하는 대신 자기 자손의 집합에 대한 정보를 저장한다.
+    - nsleft 수는 모든 자식 노드의 nsleft 수보다 작아야 하고, nsright는 모든 자식의 nsright 수보다 커야 한다.
+    - 자손으로 한 단계씩 내려갈 때는 nsleft에 값을 할당하고 가지를 한 단계씩 올라올 때는 nsright에 값을 할당하는 것
+    - 트리를 수정할 일이 없고 조회를 많이 하는 경우 적합하다.  
+- 클로저 테이블
+    - <img width="483" alt="image" src="https://github.com/hyunjungkimm/sql-antipattern/assets/97015607/3062fa58-df26-47fc-bccf-dda09a65212d">
+    - 트리의 모든 경로를 저장한다. 이 테이블에는 트리에서 조상/자손 관계를 가진 모든 노드 쌍을 한 행으로 저장한다. 각 노드에 대해 자기 자신을 참조하는 행도 추가한다.
+    - path_length 속성을 추가해 클로저 테이블 개선
+        -  자기 자신에 대한 path_length 0 , 자식에 대한 path_length 1, 손자에 대한 path_length 2
+
+#### 다 장단점이 있으니 맞는 걸 선택할 것...
